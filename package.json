@@ -1,0 +1,14 @@
+{
+  "name": "PowerEdge420-STFU",
+  "author": "VulcanBearBull",
+  "version": "1.1.0",
+  "scripts": {
+    "start": "node run -h"
+  },
+  "dependencies": {
+    "colors": "^1.4.0",
+    "commander": "^9.4.0",
+    "node-cmd": "^5.0.0",
+    "systeminformation": "^5.12.6"
+  }
+}

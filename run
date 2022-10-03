@@ -1,0 +1,68 @@
+ const program = require('commander');
+ const colors = require('colors');
+ const cmd = require('node-cmd');
+ const si = require('systeminformation');
+ 
+// Available options
+
+ program
+    .option('-c, --cronsetup', 'Enable automatic CPU tempature checker.')
+    .option('-t, --tempcheck', 'Manually check cpu temperatures.')
+    .option('-h, --help', 'Display this menu again.')
+ 
+ program.parse(process.argv)
+ 
+ const options = program.opts();
+ 
+ // Build the help menu
+ 
+ async function makehelpmenu() {
+	 console.log("Usage:" + " node run [command] \n".italic);
+    const helpOptions = await program.options;
+    const result = helpOptions
+       .map(flags => console.log("  " + flags.flags.white + "  - " + flags.description.gray));
+    console.log("\n")
+    return result;
+ }
+
+ // Setup the cronjob to check temps every minute
+ 
+ if (options.cronsetup) {
+ 
+    const currentdirectory = __dirname;
+    async function installcrontab(dir) {
+       try {
+          cmd.runSync('sudo rm -f /usr/bin/node && sudo ln -s $(which node) /usr/bin/');
+          cmd.runSync('touch mycron && crontab -u root ./mycron && crontab -l > mycron && echo "* * * * * (/usr/bin/node ' + dir + '/run -t)" >> mycron && crontab -u root mycron && rm mycron');
+       } catch (e) {
+          console.log(e)
+       } finally {
+          console.log("Cronjob installed!".black.bgWhite);
+       }
+    }
+ 
+    installcrontab(currentdirectory)
+ 
+ // Check the temps. If Above 60 degrees turn fans to auto. If below 52 degrees make the fans shut the fuck up.
+
+ } else if (options.tempcheck) {
+    console.log('Checking temps...');
+    async function checkTemps() {
+       const temperature = await si.cpuTemperature()
+       console.log(temperature.max + "°");
+       if (temperature.max >= 60) {
+          cmd.runSync('/usr/bin/ipmitool raw 0x30 0x30 0x01 0x01 > /dev/null 2>&1');
+       } else if (temperature.max <= 52) {
+          cmd.runSync('/usr/bin/ipmitool raw 0x30 0x30 0x01 0x00 > /dev/null 2>&1 && /usr/bin/ipmitool raw 0x30 0x30 0x02 0xff 0x14 > /dev/null 2>&1');
+       }
+    }
+    checkTemps();
+
+// Display the help menu
+
+ } else if (options.help) {
+ 	cmd.runSync('sudo apt-get -y install lm-sensors ipmitool');
+    console.log("\nWelcome to my Dell PowerEdge R420 STFU app! \n".brightYellow);
+    console.log("Below are some commands to get you started: \n".green);
+    makehelpmenu();;
+ }
